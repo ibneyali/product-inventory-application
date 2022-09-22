@@ -1,5 +1,6 @@
 package com.ibn.orderservice.service.serviceimpl;
 
+import com.ibn.orderservice.dto.InventoryResponse;
 import com.ibn.orderservice.dto.OrderLineItemsDto;
 import com.ibn.orderservice.dto.OrderRequest;
 import com.ibn.orderservice.dto.OrderResponse;
@@ -11,6 +12,7 @@ import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +25,7 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     OrderRepository orderRepository;
 
-
+    private final WebClient webClient;
     @Override
     public void saveOrder(OrderRequest orderRequest) {
 
@@ -32,7 +34,27 @@ public class OrderServiceImpl implements OrderService {
         List<OrderLineItems> orderLineItems = orderRequest.getOrderLineItemsDtoList()
                 .stream().map(this :: mapToOrderRequest).toList();
         order.setOrderLineItemsList(orderLineItems);
-        orderRepository.save(order);
+
+        List<String> skuCodes = order.getOrderLineItemsList().stream()
+                .map(OrderLineItems::getSkuCode).toList();
+
+        //Call Inventory service and place order if product is in stock
+        InventoryResponse[] inventoryResponses = webClient.get()
+                .uri("http://localhost:9093/api/",
+                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+                        .retrieve()
+                                .bodyToMono(InventoryResponse[].class)
+                                        .block();
+
+        //Boolean inStock = Arrays.stream(inventoryResponses).allMatch(InventoryResponse :: getIsInStock);
+
+        if (inventoryResponses.length > 0){
+            orderRepository.save(order);
+        }
+        else {
+            throw new IllegalArgumentException("Product is not in stock, Please try with different sku code");
+        }
+
     }
 
     private OrderLineItems mapToOrderRequest(OrderLineItemsDto orderLineItemsDto) {

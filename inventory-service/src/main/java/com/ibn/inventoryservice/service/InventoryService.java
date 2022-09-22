@@ -1,8 +1,10 @@
 package com.ibn.inventoryservice.service;
 
-import com.ibn.inventoryservice.model.Inventory;
+import com.ibn.inventoryservice.dto.InventoryResponse;
+
+import java.util.List;
 
 public interface InventoryService {
 
-    Inventory isInStock(String skuCode);
+    List<InventoryResponse> isInStock(List<String> skuCode);
 }
