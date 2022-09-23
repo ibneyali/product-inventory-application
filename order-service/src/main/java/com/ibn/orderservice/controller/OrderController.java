@@ -19,8 +19,7 @@ public class OrderController {
     @RequestMapping(value = "/order", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     public String placeOrder(@RequestBody OrderRequest orderRequest){
-        orderService.saveOrder(orderRequest);
-        return "Order Placed";
+        return orderService.saveOrder(orderRequest);
     }
     @RequestMapping(value = "/order", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)

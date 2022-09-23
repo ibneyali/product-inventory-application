@@ -25,9 +25,9 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     OrderRepository orderRepository;
 
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
     @Override
-    public void saveOrder(OrderRequest orderRequest) {
+    public String saveOrder(OrderRequest orderRequest) {
 
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
@@ -39,8 +39,8 @@ public class OrderServiceImpl implements OrderService {
                 .map(OrderLineItems::getSkuCode).toList();
 
         //Call Inventory service and place order if product is in stock
-        InventoryResponse[] inventoryResponses = webClient.get()
-                .uri("http://localhost:9093/api/",
+        InventoryResponse[] inventoryResponses = webClientBuilder.build().get()
+                .uri("http://inventory-service/api/",
                         uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
                         .retrieve()
                                 .bodyToMono(InventoryResponse[].class)
@@ -50,10 +50,11 @@ public class OrderServiceImpl implements OrderService {
 
         if (inventoryResponses.length > 0){
             orderRepository.save(order);
+            return "Order saved";
         }
-        else {
-            throw new IllegalArgumentException("Product is not in stock, Please try with different sku code");
-        }
+        else
+            return "Product is not in stock, Please try with different sku code";
+
 
     }
 
