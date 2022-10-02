@@ -4,6 +4,7 @@ import com.ibn.orderservice.dto.InventoryResponse;
 import com.ibn.orderservice.dto.OrderLineItemsDto;
 import com.ibn.orderservice.dto.OrderRequest;
 import com.ibn.orderservice.dto.OrderResponse;
+import com.ibn.orderservice.event.OrderEvent;
 import com.ibn.orderservice.model.Order;
 import com.ibn.orderservice.model.OrderLineItems;
 import com.ibn.orderservice.repository.OrderRepository;
@@ -11,6 +12,7 @@ import com.ibn.orderservice.service.OrderService;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -26,6 +28,7 @@ public class OrderServiceImpl implements OrderService {
     OrderRepository orderRepository;
 
     private final WebClient.Builder webClientBuilder;
+    private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
     @Override
     public String saveOrder(OrderRequest orderRequest) {
 
@@ -49,6 +52,12 @@ public class OrderServiceImpl implements OrderService {
         //Boolean inStock = Arrays.stream(inventoryResponses).allMatch(InventoryResponse :: getIsInStock);
 
         if (inventoryResponses.length > 0){
+            try{
+                kafkaTemplate.send("notificationTopic", new OrderEvent(order.getOrderNumber()));
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
             orderRepository.save(order);
             return "Order saved";
         }
