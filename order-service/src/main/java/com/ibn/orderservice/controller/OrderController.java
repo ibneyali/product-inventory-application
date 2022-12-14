@@ -14,6 +14,7 @@ import javax.transaction.Transactional;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+@CrossOrigin(origins="http://localhost:3000/")
 @RestController
 @RequestMapping("/api")
 @Transactional
